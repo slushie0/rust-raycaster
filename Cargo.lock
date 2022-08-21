@@ -335,7 +335,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "rust_opengl"
+name = "raycaster-rust"
 version = "0.1.0"
 dependencies = [
  "macroquad",
