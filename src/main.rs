@@ -79,29 +79,25 @@ async fn main() {
     let fov = 66.0;
     let angle_increment = fov/width;
     let mut angle: f32 = 0.0;
-    let mut x = 0;
-    let mut y = 0;
+    let mut x = 0.0;
+    let mut y = 0.0;
 
     loop {
         if is_key_down(KeyCode::W) {
-            x = x+1*cos_deg(angle) as i32;
-            y = y-1*sin_deg(angle) as i32;
-            println!("W: {}", is_key_down(KeyCode::W));
-        }
-        if is_key_down(KeyCode::A) {
-            x = x+1*cos_deg(angle+90.0) as i32;
-            y = y-1*sin_deg(angle+90.0) as i32;
-            println!("A: {}", is_key_down(KeyCode::A));
-        }
-        if is_key_down(KeyCode::S) {
-            x = x+1*cos_deg(angle+180.0) as i32;
-            y = y-1*sin_deg(angle+180.0) as i32;
-            println!("S: {}", is_key_down(KeyCode::S));
+            x = x+1.0*cos_deg(angle);
+            y = y-1.0*sin_deg(angle);
         }
         if is_key_down(KeyCode::D) {
-            x = x+1*cos_deg(angle-90.0) as i32;
-            y = y-1*sin_deg(angle-90.0) as i32;
-            println!("D: {}", is_key_down(KeyCode::D));
+            x = x+1.0*cos_deg(angle+90.0);
+            y = y-1.0*sin_deg(angle+90.0);
+        }
+        if is_key_down(KeyCode::S) {
+            x = x+1.0*cos_deg(angle+180.0);
+            y = y-1.0*sin_deg(angle+180.0);
+        }
+        if is_key_down(KeyCode::A) {
+            x = x+1.0*cos_deg(angle-90.0);
+            y = y-1.0*sin_deg(angle-90.0);
         }
         if is_key_down(KeyCode::Left) {
             angle -= 1.0;
@@ -110,15 +106,16 @@ async fn main() {
             angle += 1.0;
         }
         clear_background(Color { r: 0.0, g: 1.0, b: 1.0, a: 1.0 });
+        draw_rectangle(0.0, screen_height()*0.5, screen_width(), screen_height()*0.5, GREEN);
         for i in 0..width as i32{
-            let dist = ray(x as f32, 40.0, angle + i as f32 * angle_increment, 500.0, walls);
+            let dist = ray(x, y, (angle - fov*0.5) + i as f32 * angle_increment, 600.0, walls);
             let line_height = 10.0*width/dist/cos_deg((i as f32-width/2.0)*angle_increment);
-            //line(width-i, height/2-lineHeight/2, width-i, height/2+lineHeight/2);
+            let col = line_height/150.0;
 
             draw_line(
                 i as f32, ((height/2.0)+line_height) as f32,
                 i as f32, ((height/2.0)-line_height) as f32,
-                1.0, BLACK
+                1.0, Color { r: col, g: col, b: col, a: 1.0 }
             );
         }
         next_frame().await;
