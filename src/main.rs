@@ -20,8 +20,9 @@ fn intersects(a:f32,b:f32,c:f32,d:f32,p:f32,q:f32,r:f32,s:f32) -> bool {
     (0.0 < lambda && lambda < 1.0) && (0.0 < gamma && gamma < 1.0)
 }
 
-fn ray (x:f32, y:f32, dir:f32, clip:f32, walls:[[f32; 4]; 5]) -> f32 {
+fn ray (x:f32, y:f32, dir:f32, clip:f32, walls:[[f32; 4]; 5]) -> (f32, i32) {
     let mut closest: f32 = clip;
+    let mut wall_used: i32 = 0;
     for i in 0..4 {
 		
 		// This section is Iron Programming's code
@@ -37,7 +38,7 @@ fn ray (x:f32, y:f32, dir:f32, clip:f32, walls:[[f32; 4]; 5]) -> f32 {
 	        // denominator
 	        let den: f32 = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4);
 	        if den == 0.0 {
-	            return 0.0;
+	            return (0.0, 0);
 	        }
 	        
 	        let t: f32 = ((x1 - x3) * (y3 - y4) - (y1 - y3) * (x3 - x4)) / den;
@@ -51,15 +52,16 @@ fn ray (x:f32, y:f32, dir:f32, clip:f32, walls:[[f32; 4]; 5]) -> f32 {
 	            let d = dist(x3, y3, ptx, pty); // distance betwen 2 points
 	            if d < closest {
 					closest = d;
+                    wall_used = i as i32;
 				}
 	        }
         }
         // This is the end of Iron Programming's code
 	}
 	if closest == clip {
-	    return 0.0;
+	    return (0.0, 0);
 	}
-	return closest;
+	return (closest, wall_used);
 }
 
 fn cos_deg (deg:f32) -> f32 {
@@ -74,6 +76,7 @@ fn sin_deg (deg:f32) -> f32 {
 async fn main() {
 
     let walls: [[f32; 4]; 5] = [[10.0, 10.0, 390.0, 10.0], [390.0, 10.0, 390.0, 390.0], [390.0, 390.0, 10.0, 390.0], [10.0, 390.0, 10.0, 10.0], [200.0, 40.0, 300.0, 300.0]];
+    let mut wall_lighting: [f32; 4] = [0.0, 0.0, 0.0, 0.0];
     let width = screen_width();
     let height = screen_height();
     let fov = 66.0;
@@ -81,6 +84,22 @@ async fn main() {
     let mut angle: f32 = 0.0;
     let mut x = 0.0;
     let mut y = 0.0;
+
+    for i in 0..4 {
+        let ex = walls[i][0];
+        let ey = walls[i][1];
+        let cx = walls[i][2];
+        let cy = walls[i][3];
+        let dy = ey - cy;
+        let dx = ex - cx;
+        let mut theta = dy.atan2(dx); // range (-PI, PI]
+        theta *= 180.0 / PI; // rads to degs, range (-180, 180]
+        if theta < 0.0 {
+            //theta = 360.0 + theta; // range [0, 360)
+            theta = theta.abs();
+        }
+        wall_lighting[i] = theta / 360.0;
+    }
 
     loop {
         if is_key_down(KeyCode::W) {
@@ -108,9 +127,12 @@ async fn main() {
         clear_background(Color { r: 0.0, g: 1.0, b: 1.0, a: 1.0 });
         draw_rectangle(0.0, screen_height()*0.5, screen_width(), screen_height()*0.5, GREEN);
         for i in 0..width as i32{
-            let dist = ray(x, y, (angle - fov*0.5) + i as f32 * angle_increment, 600.0, walls);
+            let ray = ray(x, y, (angle - fov*0.5) + i as f32 * angle_increment, 600.0, walls);
+            let dist = ray.0;
             let line_height = 10.0*width/dist/cos_deg((i as f32-width/2.0)*angle_increment);
-            let col = line_height/150.0;
+            //let col = line_height/150.0;
+            //let index = ray.1 as f32;
+            let col = wall_lighting[ray.1 as usize];
 
             draw_line(
                 i as f32, ((height/2.0)+line_height) as f32,
@@ -118,6 +140,7 @@ async fn main() {
                 1.0, Color { r: col, g: col, b: col, a: 1.0 }
             );
         }
+        println!("{:?}", wall_lighting);
         next_frame().await;
     }
 }
