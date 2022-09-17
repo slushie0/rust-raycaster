@@ -2,7 +2,6 @@ use std::f32::consts::PI;
 
 use macroquad::{prelude::*};
 
-
 fn dist (x1:f32, y1:f32, x2:f32, y2:f32) -> f32 {
     let dx = x1 - x2;
     let dy = y1 - y2;
@@ -72,6 +71,12 @@ fn sin_deg (deg:f32) -> f32 {
     return (deg * ( PI / 180.0 )).sin();
 }
 
+fn ray_walk (x:f32, y:f32, dir:f32, walls: [[f32; 4]; 5]) -> bool {
+    let check = ray(x, y, dir, 10.0, walls);
+    //return check == (0.0, 0);
+    return true;
+}
+
 #[macroquad::main("Raycaster")]
 async fn main() {
 
@@ -82,8 +87,8 @@ async fn main() {
     let fov = 66.0;
     let angle_increment = fov/width;
     let mut angle: f32 = 0.0;
-    let mut x = 0.0;
-    let mut y = 0.0;
+    let mut x = 20.0;
+    let mut y = 20.0;
 
     for i in 0..4 {
         let ex = walls[i][0];
@@ -103,26 +108,34 @@ async fn main() {
 
     loop {
         if is_key_down(KeyCode::W) {
-            x = x+1.0*cos_deg(angle);
-            y = y-1.0*sin_deg(angle);
+            if ray_walk(x, y, angle - fov*0.5, walls) {
+                x += 1.0*cos_deg(angle);
+                y -= 1.0*sin_deg(angle);
+            }
         }
         if is_key_down(KeyCode::D) {
-            x = x+1.0*cos_deg(angle+90.0);
-            y = y-1.0*sin_deg(angle+90.0);
+            if ray_walk(x, y, angle - fov*0.5 - 90.0, walls) {
+                x = x+1.0*cos_deg(angle-90.0);
+                y = y-1.0*sin_deg(angle-90.0);
+            }
         }
         if is_key_down(KeyCode::S) {
-            x = x+1.0*cos_deg(angle+180.0);
-            y = y-1.0*sin_deg(angle+180.0);
+            if ray_walk(x, y, angle - fov*0.5 + 180.0, walls) {
+                x = x+1.0*cos_deg(angle+180.0);
+                y = y-1.0*sin_deg(angle+180.0);
+            }
         }
         if is_key_down(KeyCode::A) {
-            x = x+1.0*cos_deg(angle-90.0);
-            y = y-1.0*sin_deg(angle-90.0);
+            if ray_walk(x, y, angle - fov*0.5 + 90.0, walls) {
+                x = x+1.0*cos_deg(angle+90.0);
+                y = y-1.0*sin_deg(angle+90.0);
+            }
         }
         if is_key_down(KeyCode::Left) {
-            angle -= 1.0;
+            angle += 1.0;
         }
         if is_key_down(KeyCode::Right) {
-            angle += 1.0;
+            angle -= 1.0;
         }
         clear_background(Color { r: 0.0, g: 1.0, b: 1.0, a: 1.0 });
         draw_rectangle(0.0, screen_height()*0.5, screen_width(), screen_height()*0.5, GREEN);
@@ -130,17 +143,21 @@ async fn main() {
             let ray = ray(x, y, (angle - fov*0.5) + i as f32 * angle_increment, 600.0, walls);
             let dist = ray.0;
             let line_height = 10.0*width/dist/cos_deg((i as f32-width/2.0)*angle_increment);
-            //let col = line_height/150.0;
-            //let index = ray.1 as f32;
             let col = wall_lighting[ray.1 as usize];
 
             draw_line(
-                i as f32, ((height/2.0)+line_height) as f32,
-                i as f32, ((height/2.0)-line_height) as f32,
+                width - i as f32, ((height/2.0)+line_height) as f32,
+                width - i as f32, ((height/2.0)-line_height) as f32,
                 1.0, Color { r: col, g: col, b: col, a: 1.0 }
             );
+
+            for i in 0..4 {
+                let wall = walls[i];
+                draw_line(wall[0], wall[1], wall[2], wall[3], 4.0, BLACK);
+                draw_circle(x, y, 5.0, RED);
+                draw_triangle(vec2(x, y), vec2(x+10.0*cos_deg(-33.0), y+10.0*cos_deg(-33.0)), vec2(x-10.0*cos_deg(-33.0), y-10.0*cos_deg(-33.0)), YELLOW);
+            }
         }
-        println!("{:?}", wall_lighting);
         next_frame().await;
     }
 }
